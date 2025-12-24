@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* =========================
+   Global Design Tokens
+   ========================= */
+:root {
+  --primary: 252 0 5;        /* #fc0005 */
+  --background: 255 255 255; /* white */
+  --foreground: 0 0 0;       /* black */
+}
+
+/* =========================
+   Base styles
+   ========================= */
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* =========================
+   Semantic Utilities
+   ========================= */
+@layer utilities {
+  /* =========================
+     PRIMARY BACKGROUNDS
+     ========================= */
+  .bg-primary {
+    background-color: rgb(var(--primary));
+  }
+
+  .bg-primary-hover {
+    background-color: rgb(var(--primary) / 0.9);
+  }
+
+  .bg-primary-active {
+    background-color: rgb(var(--primary) / 0.85);
+  }
+
+  .bg-primary-disabled {
+    background-color: rgb(var(--primary) / 0.4);
+  }
+
+  /* =========================
+     PRIMARY TEXT
+     ========================= */
+  .text-primary {
+    color: rgb(var(--primary));
+  }
+
+  .text-primary-muted {
+    color: rgb(var(--primary) / 0.75);
+  }
+
+  /* =========================
+     PRIMARY BORDERS & RINGS
+     ========================= */
+  .border-primary {
+    border-color: rgb(var(--primary));
+  }
+
+  .ring-primary {
+    --tw-ring-color: rgb(var(--primary) / 0.5);
+  }
+
+  /* =========================
+     PREMIUM BUTTON BEHAVIOR
+     ========================= */
+  .btn-primary {
+    background-color: rgb(var(--primary));
+    color: white;
+    transition:
+      background-color 200ms ease,
+      transform 120ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .btn-primary:hover {
+    background-color: rgb(var(--primary) / 0.9);
+  }
+
+  .btn-primary:active {
+    background-color: rgb(var(--primary) / 0.85);
+    transform: translateY(1px);
+  }
+
+  .btn-primary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(var(--primary) / 0.35);
+  }
+
+  .btn-primary:disabled {
+    background-color: rgb(var(--primary) / 0.4);
+    cursor: not-allowed;
+  }
+}
