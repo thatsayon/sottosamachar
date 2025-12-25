@@ -77,7 +77,8 @@ class Post(BaseModel):
         max_length=255,
         unique=True,
         blank=True,
-        db_index=True
+        db_index=True,
+        allow_unicode=True
     )
 
     body = CKEditor5Field(
@@ -149,7 +150,11 @@ class Post(BaseModel):
         return self.title
 
     def _generate_unique_slug(self) -> str:
-        base_slug = slugify(self.title) or str(uuid.uuid4())[:8]
+        base_slug = slugify(
+            self.title.strip(),
+            allow_unicode=True
+        ) or str(uuid.uuid4())[:8]
+
         slug = base_slug
         counter = 1
 
