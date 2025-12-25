@@ -1,5 +1,9 @@
 from datetime import timedelta
 from pathlib import Path
+
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -23,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'django.contrib.postgres',
 ]
 
 # Local apps
@@ -38,6 +42,8 @@ INSTALLED_APPS += [
     'django_filters',
     'rest_framework.authtoken',
     'django_ckeditor_5',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 # Middleware
@@ -206,3 +212,15 @@ CKEDITOR_5_CONFIGS = {
     }
 }
 
+# cloudinary setup
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': env('CLOUD_NAME'),
+    'API_KEY': env('CLOUDINARY_API_KEY'),
+    'API_SECRET': env('CLOUDINARY_API_SECRET')
+}
+
+cloudinary.config(
+    cloud_name = CLOUDINARY_STORAGE['CLOUD_NAME'], 
+    api_key = CLOUDINARY_STORAGE['API_KEY'], 
+    api_secret = CLOUDINARY_STORAGE['API_SECRET']
+)

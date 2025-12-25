@@ -1,99 +1,60 @@
-import uuid
-import math
-
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
-
 from django_ckeditor_5.fields import CKEditor5Field
+from django.contrib.postgres.fields import ArrayField
+
+from cloudinary.models import CloudinaryField
+
+from core.db.models import BaseModel
+
+import uuid
+import math
 
 User = get_user_model()
 
-class Category(models.Model):
-    """
-    Categories for grouping posts.
-    Example: Technology, Business, Sports, Politics
-    """
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False
-    )
-
-    name = models.CharField(
-        max_length=100,
-        unique=True
-    )
+class Category(BaseModel):
+    name = models.CharField(max_length=100)
 
     slug = models.SlugField(
         max_length=120,
-        unique=True,
-        db_index=True,
         blank=True
+    )
+
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="children"
     )
 
     description = models.TextField(blank=True)
 
-    is_active = models.BooleanField(
-        default=True,
-        help_text="Disable category without deleting posts"
-    )
-
-    order = models.PositiveIntegerField(
-        default=0,
-        help_text="Controls display order"
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["order", "name"]
-        indexes = [
-            models.Index(fields=["slug"]),
-            models.Index(fields=["is_active"]),
+        constraints = [
+            models.UniqueConstraint(
+                fields=["parent", "slug"],
+                name="unique_category_slug_per_parent"
+            )
         ]
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.name
-
-    def _generate_unique_slug(self) -> str:
-        base_slug = slugify(self.name) or str(uuid.uuid4())[:8]
-        slug = base_slug
-        counter = 1
-
-        while Category.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
-
-        return slug
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = self._generate_unique_slug()
+            self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
 
-
-class Post(models.Model):
-    """
-    Production-grade Post model for a serious blog / news site
-    """
-
-    # --------------------
-    # Identity
-    # --------------------
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False
-    )
-
-    # --------------------
-    # Relations
-    # --------------------
+class Post(BaseModel):
     author = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
@@ -103,38 +64,38 @@ class Post(models.Model):
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
-        related_name="posts",
-        help_text="Each post must belong to one category"
+        related_name="primary_posts"
     )
 
-    # --------------------
-    # Content
-    # --------------------
     title = models.CharField(max_length=255)
+    subtitle = models.CharField(max_length=150)
 
     slug = models.SlugField(
         max_length=255,
         unique=True,
-        db_index=True,
-        blank=True
+        blank=True,
+        db_index=True
     )
-
-    excerpt = models.TextField(blank=True)
 
     body = CKEditor5Field(
         "Content",
         config_name="extends"
     )
 
-    cover_image = models.ImageField(
-        upload_to="posts/covers/",
+    cover_image = CloudinaryField(
+        "cover_image",
+        folder="posts/covers",
         null=True,
         blank=True
     )
 
-    # --------------------
-    # Publishing
-    # --------------------
+    tags = ArrayField(
+        models.CharField(max_length=50),
+        default=list,
+        blank=True,
+        help_text="Comma-separated tags (minimum 3)"
+    )
+
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
@@ -153,31 +114,20 @@ class Post(models.Model):
         db_index=True
     )
 
-    # --------------------
-    # SEO
-    # --------------------
     seo_title = models.CharField(max_length=255, blank=True)
     seo_description = models.TextField(blank=True)
 
-    # --------------------
-    # Metrics
-    # --------------------
     views_count = models.PositiveIntegerField(default=0)
+
     reading_time = models.PositiveIntegerField(
         default=0,
         help_text="Estimated reading time in minutes"
     )
 
-    # --------------------
-    # Soft delete
-    # --------------------
-    is_deleted = models.BooleanField(default=False)
-
-    # --------------------
-    # Timestamps
-    # --------------------
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(
+        default=False,
+        db_index=True
+    )
 
     class Meta:
         ordering = ["-published_at", "-created_at"]
@@ -185,14 +135,12 @@ class Post(models.Model):
             models.Index(fields=["slug"]),
             models.Index(fields=["status", "published_at"]),
             models.Index(fields=["category", "status"]),
+            models.Index(fields=["is_deleted"]),
         ]
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.title
 
-    # --------------------
-    # Helpers
-    # --------------------
     def _generate_unique_slug(self) -> str:
         base_slug = slugify(self.title) or str(uuid.uuid4())[:8]
         slug = base_slug
@@ -213,16 +161,12 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         creating = self._state.adding
 
-        # Slug: auto-generate ONLY if not provided
         if creating and not self.slug:
             self.slug = self._generate_unique_slug()
 
-        # Publish timestamp
         if self.status == self.Status.PUBLISHED and not self.published_at:
             self.published_at = timezone.now()
 
-        # Reading time
         self.reading_time = self.calculate_reading_time()
 
         super().save(*args, **kwargs)
-
