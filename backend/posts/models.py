@@ -56,23 +56,19 @@ class Category(BaseModel):
         super().save(*args, **kwargs)
 
 
-
 class Post(BaseModel):
     author = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
         related_name="posts"
     )
-
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
         related_name="primary_posts"
     )
-
     title = models.CharField(max_length=255)
     subtitle = models.CharField(max_length=150)
-
     slug = models.SlugField(
         max_length=255,
         unique=True,
@@ -80,63 +76,52 @@ class Post(BaseModel):
         db_index=True,
         allow_unicode=True
     )
-
     body = CKEditor5Field(
         "Content",
         config_name="extends"
     )
-
     cover_image = CloudinaryField(
         "cover_image",
         folder="posts/covers",
         null=True,
         blank=True
     )
-
     tags = ArrayField(
         models.CharField(max_length=50),
         default=list,
         blank=True,
         help_text="Comma-separated tags (minimum 3)"
     )
-
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
         ARCHIVED = "archived", "Archived"
-
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.DRAFT,
         db_index=True
     )
-
     published_at = models.DateTimeField(
         null=True,
         blank=True,
         db_index=True
     )
-
     seo_title = models.CharField(max_length=255, blank=True)
     seo_description = models.TextField(blank=True)
-
     views_count = models.PositiveIntegerField(default=0)
-
     reading_time = models.PositiveIntegerField(
         default=0,
         help_text="Estimated reading time in minutes"
     )
-
     is_top_news = models.BooleanField(
         default=False
     )
-
     is_deleted = models.BooleanField(
         default=False,
         db_index=True
     )
-
+    
     class Meta:
         ordering = ["-published_at", "-created_at"]
         indexes = [
@@ -145,40 +130,53 @@ class Post(BaseModel):
             models.Index(fields=["category", "status"]),
             models.Index(fields=["is_deleted"]),
         ]
-
+    
     def __str__(self):
         return self.title
-
+    
     def _generate_unique_slug(self) -> str:
-        base_slug = slugify(
-            self.title.strip(),
-            allow_unicode=True
-        ) or str(uuid.uuid4())[:8]
-
-        slug = base_slug
+        import re
+        
+        # Normalize the title and create slug
+        title = self.title.strip()
+        
+        # Replace spaces and special characters with hyphens
+        slug = re.sub(r'[\s]+', '-', title)
+        slug = re.sub(r'[^\w\u0980-\u09FF-]', '', slug, flags=re.UNICODE)  # Keep Bangla chars
+        slug = slug.lower()
+        
+        # Remove consecutive hyphens
+        slug = re.sub(r'-+', '-', slug)
+        slug = slug.strip('-')
+        
+        # Fallback if slug is empty
+        if not slug:
+            slug = str(uuid.uuid4())[:8]
+        
+        # Ensure uniqueness
+        base_slug = slug
         counter = 1
-
         while Post.objects.filter(slug=slug).exclude(pk=self.pk).exists():
             slug = f"{base_slug}-{counter}"
             counter += 1
-
+        
         return slug
-
+    
     def calculate_reading_time(self) -> int:
         if not self.body:
             return 0
         words = len(self.body.split())
         return max(1, math.ceil(words / 200))
-
+    
     def save(self, *args, **kwargs):
         creating = self._state.adding
-
+        
         if creating and not self.slug:
             self.slug = self._generate_unique_slug()
-
+        
         if self.status == self.Status.PUBLISHED and not self.published_at:
             self.published_at = timezone.now()
-
+        
         self.reading_time = self.calculate_reading_time()
-
+        
         super().save(*args, **kwargs)
