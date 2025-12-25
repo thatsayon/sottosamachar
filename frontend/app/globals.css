@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@layer utilities {
+  /* Your existing utilities stay here */
+}
+
 /* =========================
    Global Design Tokens
    ========================= */
@@ -94,4 +98,3 @@ body {
     cursor: not-allowed;
   }
 }
-

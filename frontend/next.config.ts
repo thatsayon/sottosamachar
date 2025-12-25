@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'foxiz.io',
       },
+      {
+        protocol: 'https',
+        hostname: 'tds-images.thedailystar.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      }
     ],
   },
 };
