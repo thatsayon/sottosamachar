@@ -124,6 +124,10 @@ class Post(BaseModel):
         help_text="Estimated reading time in minutes"
     )
 
+    is_top_news = models.BooleanField(
+        default=False
+    )
+
     is_deleted = models.BooleanField(
         default=False,
         db_index=True
