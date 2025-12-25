@@ -49,10 +49,12 @@ class Category(BaseModel):
     def __str__(self):
         return self.name
 
+    
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name, allow_unicode=True)
+            self.slug = self.name.strip() or str(uuid.uuid4())[:8]
         super().save(*args, **kwargs)
+
 
 
 class Post(BaseModel):

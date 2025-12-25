@@ -4,5 +4,8 @@ from .models import (
     Post,
 )
 
-admin.site.register(Category)
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    readonly_fields = ("slug",)
+
 admin.site.register(Post)
