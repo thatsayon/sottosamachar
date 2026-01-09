@@ -134,34 +134,26 @@ class Post(BaseModel):
     def __str__(self):
         return self.title
     
+
     def _generate_unique_slug(self) -> str:
-        import re
-        
-        # Normalize the title and create slug
-        title = self.title.strip()
-        
-        # Replace spaces and special characters with hyphens
-        slug = re.sub(r'[\s]+', '-', title)
-        slug = re.sub(r'[^\w\u0980-\u09FF-]', '', slug, flags=re.UNICODE)  # Keep Bangla chars
-        slug = slug.lower()
-        
-        # Remove consecutive hyphens
-        slug = re.sub(r'-+', '-', slug)
-        slug = slug.strip('-')
-        
-        # Fallback if slug is empty
-        if not slug:
-            slug = str(uuid.uuid4())[:8]
-        
-        # Ensure uniqueness
-        base_slug = slug
-        counter = 1
+        base_slug = slugify(self.title, allow_unicode=False)
+
+        # Fallback if title is empty or slugify fails
+        if not base_slug:
+            base_slug = "post"
+
+        # Short random suffix (6 chars)
+        random_suffix = uuid.uuid4().hex[:6]
+        slug = f"{base_slug}-{random_suffix}"
+
+        # Absolute safety check (very unlikely to loop)
         while Post.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
-        
+            random_suffix = uuid.uuid4().hex[:6]
+            slug = f"{base_slug}-{random_suffix}"
+
         return slug
-    
+
+
     def calculate_reading_time(self) -> int:
         if not self.body:
             return 0
