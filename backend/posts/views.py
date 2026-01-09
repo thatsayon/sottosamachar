@@ -26,7 +26,7 @@ class PostListView(generics.ListAPIView):
 class PostDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = PostDetailSerializer
-    lookup_field = "slug"
+    lookup_field = "id"
 
     def get_queryset(self):
         return (
