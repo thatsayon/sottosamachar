@@ -1,4 +1,4 @@
-*pm2 command*
+***pm2 command***
 pm2 start /home/thatsayon/sottosamachar/backend/venv/bin/uvicorn \
   --name frontend-backend \
   --interpreter none \
